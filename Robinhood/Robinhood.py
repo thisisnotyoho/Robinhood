@@ -925,3 +925,82 @@ class Robinhood:
         """
         transaction = Transaction.SELL
         return self.place_order(instrument, quantity, bid_price, transaction)
+    
+    ##############################
+    #GET OPEN ORDER(S)
+    ##############################
+    
+    def get_open_orders(self):
+        """
+        Returns all currently open (cancellable) orders.
+        If not orders are currently open, `None` is returned.
+        TODO: Is there a way to get these from the API endpoint without stepping through order history?
+        """
+
+        open_orders = []
+        orders = self.order_history()
+        for order in orders['results']:
+            if(order['cancel'] is not None): 
+                open_orders.append(order)
+                print(type(order))
+
+        if len(open_orders) > 0:
+            return open_orders
+
+    ##############################
+    #CANCEL ORDER(S)
+    ##############################
+
+    def cancel_order(
+            self,
+            order_id
+    ): 
+        """
+        Cancels specified order and returns the response (results from `orders` command). 
+        If order cannot be cancelled, `None` is returned.
+
+        Args:
+            order_id (str): Order ID that is to be cancelled or order dict returned from
+            order get.
+
+        """
+        if order_id is str:
+            try:
+                order = self.session.get(self.endpoints['orders'] + order_id).json()
+            except (requests.exceptions.HTTPError)  as err_msg:
+                raise ValueError('Invalid order id: ' + order_id)
+       
+        if order.get('cancel') is not None:
+            try: 
+                req = self.session.post(order['cancel'])
+                req.raise_for_status()
+                #TODO: confirm that the order has been dropped 
+
+            except (requests.exceptions.HTTPError)  as err_msg:
+                raise ValueError('Failed to cancel order ID: ' + order_id
+                     + '\n Error message: '+ repr(err_msg))
+                return None
+            
+        # no cancel link - order type cannot be cancelled
+        else: 
+            raise ValueError('No cancel link - unable to cancel order ID: '+ order_id)
+
+        return order
+
+    def cancel_open_orders(self):
+        """
+        Cancels all open orders and returns the responses from the canelled orders (results from `orders` command). 
+        If no orders are open or no orders were cancelled (i.e. failed to cancel), returns `None`
+        """
+        cancelled_orders = []
+        open_orders = self.get_open_orders()
+
+        # no open orders 
+        if open_orders is None: 
+            return None
+
+        for order in open_orders:
+            cancel_order(order['id'])
+            cancelled_orders.append(order)
+        
+        return cancelled_orders
