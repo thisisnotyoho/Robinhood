@@ -34,6 +34,7 @@ class Robinhood:
         "ach_relationships": "https://api.robinhood.com/ach/relationships/",
         "ach_transfers": "https://api.robinhood.com/ach/transfers/",
         "applications": "https://api.robinhood.com/applications/",
+        "cards": "https://api.robinhood.com/midlands/notifications/stack/",
         "dividends": "https://api.robinhood.com/dividends/",
         "edocuments": "https://api.robinhood.com/documents/",
         "instruments": "https://api.robinhood.com/instruments/",
@@ -660,6 +661,16 @@ class Robinhood:
 
         """
         return self.session.get(self.endpoints['dividends']).json()
+
+    ##############################
+    # CARDS
+    ##############################
+    def get_cards(self):
+        return self.session.get(self.endpoints['cards']).json()['results']
+
+    def dismiss_card(self, card_id):
+        endpoint = self.endpoints['cards']+card_id+'/dismiss/'
+        return self.session.post(endpoint).json()
 
     ##############################
     # POSITIONS DATA
