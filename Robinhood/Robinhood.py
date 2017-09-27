@@ -276,9 +276,9 @@ class Robinhood:
     def get_quote(self, stock=''):
         """wrapper for quote_data"""
         data = self.quote_data(stock)
-        return data["symbol"]
+        return data
 
-    def get_historical_quotes(
+    def get_historical(
             self,
             stock,
             interval,
@@ -307,7 +307,55 @@ class Robinhood:
             bounds = Bounds(bounds)
 
         params = {
-            'symbols': ','.join(stock).upper,
+            'interval': interval,
+            'span': span,
+            'bounds': bounds.name.lower()
+        }
+        endpoint = self.endpoints['historicals'] + stock.upper() + '/'
+        res = self.session.get(
+            endpoint,
+            params=params
+        )
+        return res.json()
+
+    def get_historical_quotes(
+            self,
+            stocks,
+            interval,
+            span,
+            bounds=Bounds.REGULAR
+        ):
+        """fetch historical data for stock
+
+        Note: valid interval/span configs
+            interval = 5minute | 10minute + span = day, week
+            interval = day + span = year
+            interval = week
+            TODO: NEEDS TESTS
+
+        Args:
+            stocks (list): stock tickers
+            interval (str): resolution of data
+            span (str): length of data
+            bounds (:enum:`Bounds`, optional): 'extended' or 'regular' trading hours
+
+        Returns:
+            (:obj:`dict`) values returned from `historicals` endpoint
+
+        """
+        if len(stocks) > 75:
+            chunks = [stocks[i:i+75] for i in range(0,len(stocks),75)]
+            ret = []
+            for chunk in chunks:
+                ret += self.get_historical_quotes(chunk,interval,span,bounds)
+            return ret
+
+        if isinstance(bounds, str): #recast to Enum
+            bounds = Bounds(bounds)
+
+
+        params = {
+            'symbols' : ",".join(stocks),
             'interval': interval,
             'span': span,
             'bounds': bounds.name.lower()
@@ -316,7 +364,7 @@ class Robinhood:
             self.endpoints['historicals'],
             params=params
         )
-        return res.json()
+        return res.json()['results']
 
     def get_news(self, stock):
         """fetch news endpoint
