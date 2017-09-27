@@ -711,6 +711,91 @@ class Robinhood:
         return self.session.get(self.endpoints['dividends']).json()
 
     ##############################
+    # WATCHLIST DATA
+    ##############################
+    def get_watchlists(self):
+        """Returns names of user-defined watchlists"""
+        return self.session.get(self.endpoints['watchlists']).json()
+
+    def create_watchlist(self,
+                         name,
+        ):
+        """Creates a watchlist
+
+        Args:
+            name (string): the name of the watchlist to create
+
+        Returns:
+            (:obj:`dict`): `watchlists` endpoint payload
+        """
+        payload = { 'name' : name }
+        return self.session.post(self.endpoints['watchlists'],
+                                 data=payload).json()
+
+    def watchlist_bulk_add(self,
+                           watchlist_name,
+                           symbols
+        ):
+        """Adds symbols to a watchlist
+
+        Args:
+            watchlist_name (string): the name of the watchlist to bulk_add to
+            symbols (list): Symbols to add to the watchlist (max 32)
+
+        Returns:
+            (:obj:`dict`): `watchlists` endpoint payload
+        """
+        payload = {'symbols' : ",".join(symbols).upper()}
+        endpoint = self.endpoints['watchlists']+watchlist_name+'/bulk_add/'
+        return self.session.post(endpoint,
+                                 data=payload).json()
+
+    def watchlist_remove_item(self,
+                              watchlist_name,
+                              symbol
+        ):
+        """Removes a symbol from a watchlist
+
+        Args:
+            watchlist_name (string): the name of the watchlist to remove from
+            symbol (list): The symbol to remove from the watchlist
+
+        Returns:
+            (:obj:`dict`): `watchlists` endpoint payload
+        """
+        instrument_id = self.instruments(symbol)['id']
+        endpoint = self.endpoints['watchlists']+watchlist_name+'/'+instrument_id
+        return self.session.delete(endpoint).json()
+
+    def delete_watchlist(self,
+                         watchlist_name
+        ):
+        """Deletes a watchlist
+            NOTE: this isn't in the robinhood API ***EXPERIMENTAL***
+
+        Args:
+            watchlist_name (string): the name of the watchlist to delete
+
+        Returns:
+            (:obj:`dict`): `watchlists` endpoint payload
+        """
+        endpoint = self.endpoints['watchlists']+watchlist_name+'/'
+        return self.session.delete(endpoint).json()
+
+    def get_watchlist_instruments(self,
+                                  watchlist_name):
+        """Gets the instruments in a watchlist
+
+        Args:
+            watchlist_name (string): the name of the watchlist to retrieve
+
+        Returns:
+            (:obj:`dict`): `watchlists` endpoint payload
+        """
+        endpoint = self.endpoints['watchlists']+watchlist_name+'/'
+        return self.session.get(endpoint).json()
+
+    ##############################
     # CARDS
     ##############################
     def get_cards(self):
