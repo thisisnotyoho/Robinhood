@@ -125,10 +125,10 @@ class Robinhood:
             res.raise_for_status()
             data = res.json()
         except requests.exceptions.HTTPError:
-            raise LoginFailed()
+            raise RH_Exception.LoginFailed()
 
         if 'mfa_required' in data.keys():           #pragma: no cover
-            raise TwoFactorRequired()  #requires a second call to enable 2FA
+            raise RH_Exception.TwoFactorRequired()  #requires a second call to enable 2FA
 
         if 'token' in data.keys():
             self.set_token(data['token'])
@@ -839,10 +839,6 @@ class Robinhood:
         Notes:
             OMFG TEST THIS PLEASE!
 
-            Just realized this won't work since if type is LIMIT you need to use "price" and if
-            a STOP you need to use "stop_price".  Oops.
-            Reference: https://github.com/sanko/Robinhood/blob/master/Order.md#place-an-order
-
         Args:
             instrument (dict): the RH URL and symbol in dict for the instrument to be traded
             quantity (int): quantity of stocks in order
@@ -860,10 +856,16 @@ class Robinhood:
             transaction = Transaction(transaction)
         if not bid_price:
             bid_price = self.quote_data(instrument['symbol'])['bid_price']
+
+        if trigger == 'stop':
+            price_name = 'stop_price'
+        else:
+            price_name = 'price'
+
         payload = {
             'account': self.get_account()['url'],
             'instrument': unquote(instrument['url']),
-            'price': float(bid_price),
+            price_name : float(bid_price),
             'quantity': quantity,
             'side': transaction.name.lower(),
             'symbol': instrument['symbol'],
@@ -871,14 +873,6 @@ class Robinhood:
             'trigger': trigger,
             'type': order.lower()
         }
-        #data = 'account=%s&instrument=%s&price=%f&quantity=%d&side=%s&symbol=%s#&time_in_force=gfd&trigger=immediate&type=market' % (
-        #    self.get_account()['url'],
-        #    urllib.parse.unquote(instrument['url']),
-        #    float(bid_price),
-        #    quantity,
-        #    transaction,
-        #    instrument['symbol']
-        #)
         res = self.session.post(
             self.endpoints['orders'],
             data=payload
@@ -926,6 +920,26 @@ class Robinhood:
         transaction = Transaction.SELL
         return self.place_order(instrument, quantity, bid_price, transaction)
     
+    def place_stop_loss_order(
+            self,
+            instrument,
+            quantity,
+            limit_price
+    ):
+        """wrapper for placing stop-loss sell orders
+
+        Args:
+            instrument (dict): the RH URL and symbol in dict for the instrument to be traded
+            quantity (int): quantity of stocks in order
+            limit_price (float): price to trigger the stop loss
+
+        Returns:
+            (:obj:`requests.request`): result from `orders` put command
+
+        """
+        transaction = Transaction.SELL
+        return self.place_order(instrument, quantity, bid_price, transaction,'stop')
+
     ##############################
     #GET OPEN ORDER(S)
     ##############################
