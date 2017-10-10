@@ -828,9 +828,9 @@ class Robinhood:
             self,
             instrument,
             quantity,
+            transaction,
             bid_price=None,
             stop_price=None,
-            transaction,
             trigger='immediate',
             order='market',
             time_in_force = 'gfd',
@@ -866,14 +866,14 @@ class Robinhood:
             'trigger': trigger,
             'type': order.lower()
         }
-        if trigger='stop':
+        if trigger == 'stop':
             payload['stop_price'] = float(stop_price)
-        if order = 'limit':
+        if order == 'limit':
             payload['price'] = float(bid_price)
 
-        if trigger == 'immediate' and
+        if (trigger == 'immediate' and
             order == 'market' and
-            transaction.name.lower() == 'buy':
+            transaction.name.lower() == 'buy'):
             # A note here, this is what the App does for market buys.
             # see https://support.robinhood.com/hc/en-us/articles/208650386-Order-Types
             # and https://github.com/sanko/Robinhood/issues/11
