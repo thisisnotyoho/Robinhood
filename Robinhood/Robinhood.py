@@ -827,12 +827,13 @@ class Robinhood:
     def place_order(
             self,
             instrument,
-            quantity=1,
-            bid_price=0.0,
-            transaction=None,
+            quantity,
+            bid_price=None,
+            stop_price=None,
+            transaction,
             trigger='immediate',
             order='market',
-            time_in_force = 'gfd'
+            time_in_force = 'gfd',
         ):
         """place an order with Robinhood
 
@@ -854,18 +855,10 @@ class Robinhood:
         """
         if isinstance(transaction, str):
             transaction = Transaction(transaction)
-        if not bid_price:
-            bid_price = self.quote_data(instrument['symbol'])['bid_price']
-
-        if trigger == 'stop':
-            price_name = 'stop_price'
-        else:
-            price_name = 'price'
 
         payload = {
             'account': self.get_account()['url'],
             'instrument': unquote(instrument['url']),
-            price_name : float(bid_price),
             'quantity': quantity,
             'side': transaction.name.lower(),
             'symbol': instrument['symbol'],
@@ -873,6 +866,19 @@ class Robinhood:
             'trigger': trigger,
             'type': order.lower()
         }
+        if trigger='stop':
+            payload['stop_price'] = float(stop_price)
+        if order = 'limit':
+            payload['price'] = float(bid_price)
+
+        if trigger == 'immediate' and
+            order == 'market' and
+            transaction.name.lower() == 'buy':
+            # A note here, this is what the App does for market buys.
+            # see https://support.robinhood.com/hc/en-us/articles/208650386-Order-Types
+            # and https://github.com/sanko/Robinhood/issues/11
+            payload['price'] = self.quote_data(instrument['symbol'])['bid_price']*1.05
+             
         res = self.session.post(
             self.endpoints['orders'],
             data=payload
@@ -880,65 +886,6 @@ class Robinhood:
         res.raise_for_status()
         return res
 
-    def place_buy_order(
-            self,
-            instrument,
-            quantity,
-            bid_price=0.0
-    ):
-        """wrapper for placing buy orders
-
-        Args:
-            instrument (dict): the RH URL and symbol in dict for the instrument to be traded
-            quantity (int): quantity of stocks in order
-            bid_price (float): price for order
-
-        Returns:
-            (:obj:`requests.request`): result from `orders` put command
-
-        """
-        transaction = Transaction.BUY
-        return self.place_order(instrument, quantity, bid_price, transaction)
-
-    def place_sell_order(
-            self,
-            instrument,
-            quantity,
-            bid_price=0.0
-    ):
-        """wrapper for placing sell orders
-
-        Args:
-            instrument (dict): the RH URL and symbol in dict for the instrument to be traded
-            quantity (int): quantity of stocks in order
-            bid_price (float): price for order
-
-        Returns:
-            (:obj:`requests.request`): result from `orders` put command
-
-        """
-        transaction = Transaction.SELL
-        return self.place_order(instrument, quantity, bid_price, transaction)
-    
-    def place_stop_loss_order(
-            self,
-            instrument,
-            quantity,
-            limit_price
-    ):
-        """wrapper for placing stop-loss sell orders
-
-        Args:
-            instrument (dict): the RH URL and symbol in dict for the instrument to be traded
-            quantity (int): quantity of stocks in order
-            limit_price (float): price to trigger the stop loss
-
-        Returns:
-            (:obj:`requests.request`): result from `orders` put command
-
-        """
-        transaction = Transaction.SELL
-        return self.place_order(instrument, quantity, bid_price, transaction,'stop')
 
     ##############################
     #GET OPEN ORDER(S)
