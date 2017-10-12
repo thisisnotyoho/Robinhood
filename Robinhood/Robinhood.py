@@ -843,8 +843,9 @@ class Robinhood:
         Args:
             instrument (dict): the RH URL and symbol in dict for the instrument to be traded
             quantity (int): quantity of stocks in order
-            bid_price (float): price for order
             transaction (:enum:`Transaction`): BUY or SELL enum
+            bid_price (float): price for order (only needed for LIMIT)
+            stop_price (float): trigger price (only needed for STOP)
             trigger (:enum:`Trigger`): IMMEDIATE or STOP enum
             order (:enum:`Order`): MARKET or LIMIT
             time_in_force (:enum:`TIME_IN_FORCE`): GFD or GTC (day or until cancelled)
@@ -925,7 +926,7 @@ class Robinhood:
             order get.
 
         """
-        if order_id is str:
+        if type(order_id) is str:
             try:
                 order = self.session.get(self.endpoints['orders'] + order_id).json()
             except (requests.exceptions.HTTPError)  as err_msg:
