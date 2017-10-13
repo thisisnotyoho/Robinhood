@@ -878,14 +878,17 @@ class Robinhood:
             # A note here, this is what the App does for market buys.
             # see https://support.robinhood.com/hc/en-us/articles/208650386-Order-Types
             # and https://github.com/sanko/Robinhood/issues/11
-            payload['price'] = self.quote_data(instrument['symbol'])['bid_price']*1.05
+            tmp = self.quote_data(instrument['symbol'])['bid_price']
+            tmp = float(tmp)*1.05
+            tmp = round(tmp,2)
+            payload['price'] = tmp
              
         res = self.session.post(
             self.endpoints['orders'],
             data=payload
         )
         res.raise_for_status()
-        return res
+        return res.json()
 
 
     ##############################
@@ -904,7 +907,6 @@ class Robinhood:
         for order in orders['results']:
             if(order['cancel'] is not None): 
                 open_orders.append(order)
-                print(type(order))
 
         if len(open_orders) > 0:
             return open_orders
@@ -926,17 +928,21 @@ class Robinhood:
             order get.
 
         """
+        order = {}
         if type(order_id) is str:
             try:
                 order = self.session.get(self.endpoints['orders'] + order_id).json()
             except (requests.exceptions.HTTPError)  as err_msg:
                 raise ValueError('Invalid order id: ' + order_id)
+        else:
+            raise ValueError('Invalid order id: ' + order_id)
        
         if order.get('cancel') is not None:
             try: 
                 req = self.session.post(order['cancel'])
                 req.raise_for_status()
                 #TODO: confirm that the order has been dropped 
+                return req.json()
 
             except (requests.exceptions.HTTPError)  as err_msg:
                 raise ValueError('Failed to cancel order ID: ' + order_id
@@ -947,7 +953,7 @@ class Robinhood:
         else: 
             raise ValueError('No cancel link - unable to cancel order ID: '+ order_id)
 
-        return order
+        return None
 
     def cancel_open_orders(self):
         """
